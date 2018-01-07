@@ -150,6 +150,12 @@ def input_handler(ctx):
         chop_player.set_mrl(filepath)
         chop_player.play()
 
+    def replay_chop():
+        last_chop = ctx['last_chop']
+        if not last_chop:
+            return
+        chop_player.set_mrl(last_chop)
+        chop_player.play()
 
     def dump():
         loop = ctx['loop']
@@ -201,6 +207,8 @@ def input_handler(ctx):
             marks[1] = (offset(r, 100))
         if key is 'c':
             chop()
+        if key is 'r':
+            replay_chop()
         if key is 'd':
             dump()
 
