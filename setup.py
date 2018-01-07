@@ -13,11 +13,12 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'Click==6.7',
-    'urwid==1.3.1',
+    'google-api-python-client==1.6.4',
     'pydub==0.20.0',
     'pyperclip==1.6.0',
     'python-vlc==3.0.101',
-    # TODO: put package requirements here
+    'SpeechRecognition==3.8.1',
+    'urwid==1.3.1',
 ]
 
 setup_requirements = [
