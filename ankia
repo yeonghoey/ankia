@@ -183,7 +183,7 @@ def input_handler(ctx):
         if key is 'j':
             seek(-2)
         if key is 'J':
-            seek(-10)
+            seek(-30)
         if key is 'k':
             mark_left()
         if key is 'K':
@@ -192,7 +192,7 @@ def input_handler(ctx):
         if key is 'l':
             seek(2)
         if key is 'L':
-            seek(10)
+            seek(30)
         if key is 'a':
             l = marks[0]
             marks[0] = (offset(l, -100))
