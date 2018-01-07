@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from collections import deque
 from datetime import datetime
@@ -41,6 +42,7 @@ def main(anki_media, filepath):
     time_slider = TimeSlider('normal', 'complete', current=0, done=len(audio))
     divider2 = urwid.Divider()
     mark_display = urwid.Text('')
+    divider3 = urwid.Divider()
     chop_display = urwid.Text('')
 
     pile = urwid.Pile([
@@ -49,7 +51,9 @@ def main(anki_media, filepath):
         time_slider,
         divider2,
         mark_display,
-        chop_display])
+        divider3,
+        chop_display
+    ])
 
     filler = urwid.Filler(urwid.Padding(pile, width=76, left=4), 'top', top=2)
 
@@ -130,12 +134,15 @@ def input_handler(ctx):
         marks.append(main_player.get_time())
 
     def chop():
+        pause(main_player)
         l, r = lr(marks)
         audio_slice = audio[l:r]
         now = datetime.now().strftime('%Y%m%d-%H%M%S')
-        filepath = os.path.join(anki_media, now + '.mp3')
+        filename = now + '.mp3'
+        filepath = os.path.join(anki_media, filename)
         audio_slice.export(filepath, format='mp3')
         ctx['last_chop'] = filepath
+        chop_display.set_text('chopped: %s' % filename)
         chop_player.set_mrl(filepath)
         chop_player.play()
 
@@ -168,8 +175,10 @@ def input_handler(ctx):
         if key is 'J':
             seek(-10)
         if key is 'k':
-            pause(main_player)
             mark()
+        if key is 'K':
+            mark()
+            chop()
         if key is 'l':
             seek(3)
         if key is 'L':
@@ -191,7 +200,6 @@ def input_handler(ctx):
             marks.append(l)
             marks.append(offset(r, 100))
         if key is 'c':
-            pause(main_player)
             chop()
         if key is 'd':
             dump()
