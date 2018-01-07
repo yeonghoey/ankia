@@ -34,10 +34,22 @@ def main(anki_media, filepath):
     audio = AudioSegment.from_file(filepath)
     marks = deque([0, 0], 2)
 
-    slider = TimeSlider('normal', 'complete', current=0, done=len(audio))
-    display = urwid.Text('', align='center')
-    pile = urwid.Pile([slider, display])
-    filler = urwid.Filler(pile)
+    main_display = urwid.Text(filepath)
+    divider1 = urwid.Divider()
+    time_slider = TimeSlider('normal', 'complete', current=0, done=len(audio))
+    divider2 = urwid.Divider()
+    mark_display = urwid.Text('')
+    chop_display = urwid.Text('')
+
+    pile = urwid.Pile([
+        main_display,
+        divider1,
+        time_slider,
+        divider2,
+        mark_display,
+        chop_display])
+
+    filler = urwid.Filler(urwid.Padding(pile, width=80, left=4), 'top')
 
     ctx = {
         'anki_media': anki_media,
@@ -45,8 +57,11 @@ def main(anki_media, filepath):
         'marks': marks,
         'main_player': main_player,
         'chop_player': chop_player,
-        'slider': slider,
-        'display': display,
+
+        'main_display': main_display,
+        'time_slider': time_slider,
+        'mark_display': mark_display,
+        'chop_display': chop_display,
     }
 
     handler = input_handler(ctx)
@@ -54,19 +69,20 @@ def main(anki_media, filepath):
     main_player.play()
 
     main_player.get_instance().log_unset()
-    tick(loop, ctx)
+    loop.set_alarm_in(0.5, tick, ctx)
     loop.run()
 
 
 def tick(loop, ctx):
     marks = ctx['marks']
     main_player = ctx['main_player']
-    slider = ctx['slider']
-    display = ctx['display']
+    time_slider = ctx['time_slider']
+    mark_display = ctx['mark_display']
     t = max(main_player.get_time(), 0)
-    slider.current = t
-    display.set_text('%s - %s' % tuple(format_dt(x) for x in lr(marks)))
-    loop.set_alarm_in(0.5, tick, ctx)
+    time_slider.current = t
+    mark_display.set_text('%s - %s' % tuple(format_dt(x) for x in lr(marks)))
+    loop.set_alarm_in(0.333, tick, ctx)
+    loop.screen.clear()
 
 
 def input_handler(ctx):
@@ -75,7 +91,7 @@ def input_handler(ctx):
     marks = ctx['marks']
     main_player = ctx['main_player']
     chop_player = ctx['chop_player']
-    slider = ctx['slider']
+    time_slider = ctx['time_slider']
 
     def toggle():
         if main_player.is_playing():
