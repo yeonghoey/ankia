@@ -15,6 +15,7 @@ requirements = [
     'Click==6.7',
     'urwid==1.3.1',
     'pydub==0.20.0',
+    'pyperclip==1.6.0',
     'python-vlc==3.0.101',
     # TODO: put package requirements here
 ]

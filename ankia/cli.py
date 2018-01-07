@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from collections import deque
+from datetime import datetime
+import os
 import sys
 
 import click
 from pydub import AudioSegment
+import pyperclip
 import urwid
 import vlc
 
@@ -21,8 +24,9 @@ class TimeSlider(urwid.ProgressBar):
 
 
 @click.command()
+@click.option('--anki-media', envvar='ANKI_MEDIA')
 @click.argument('filepath')
-def main(filepath):
+def main(anki_media, filepath):
     audio = AudioSegment.from_file(filepath)
     marks = deque([0, 0], 2)
     player = vlc.MediaPlayer(filepath)
@@ -32,11 +36,13 @@ def main(filepath):
     filler = urwid.Filler(pile)
 
     ctx = {
+        'anki_media': anki_media,
         'audio':audio,
         'marks': marks,
         'player': player,
         'slider': slider,
         'display': display,
+        'cut_player': None,
     }
 
     handler = input_handler(ctx)
@@ -60,6 +66,7 @@ def tick(loop, ctx):
 
 
 def input_handler(ctx):
+    anki_media = ctx['anki_media']
     audio = ctx['audio']
     marks = ctx['marks']
     player = ctx['player']
@@ -72,6 +79,16 @@ def input_handler(ctx):
 
     def mark():
         marks.append(player.get_time())
+
+    def cut():
+        l, r = lr(marks)
+        audio_slice = audio[l:r]
+        now = datetime.now().strftime('%Y%m%d-%H%M%S')
+        filename = now + '.mp3'
+        filepath = os.path.join(anki_media, filename)
+        audio_slice.export(filepath, format='mp3')
+        anki_sound_field = '[sound:%s]' % filename
+        pyperclip.copy(anki_sound_field)
 
     def handle(key):
         if key in ('q', 'Q'):
@@ -88,6 +105,8 @@ def input_handler(ctx):
             seek(3)
         if key is 'L':
             seek(10)
+        if key is 'enter':
+            cut()
 
     return handle
 
