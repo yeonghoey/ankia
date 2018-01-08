@@ -42,7 +42,7 @@ def main(anki_media, srcpath):
     divider2 = urwid.Divider()
     mark_text = urwid.Text('')
     divider3 = urwid.Divider()
-    name_text = urwid.Text('')
+    name_text = urwid.Text('', align='right')
     detail_text = urwid.Text('')
     command_display = urwid.Columns([(9, name_text), detail_text], 3)
 
@@ -150,21 +150,21 @@ def input_handler(ctx):
 
     def mark_left():
         marks[0] = (main_player.get_time())
-        show_command('mark-l', format_dt(marks[0]))
+        show_command('markL', format_dt(marks[0]))
 
     def mark_right():
         marks[1] = (main_player.get_time())
-        show_command('mark-r', format_dt(marks[1]))
+        show_command('markR', format_dt(marks[1]))
 
     def adjust_left(ms):
         l = marks[0]
         marks[0] = (offset(l, ms))
-        show_command('adjust-l', '%+dms' % ms)
+        show_command('adjustL', '%+dms' % ms)
 
     def adjust_right(ms):
         r = marks[1]
         marks[1] = (offset(r, ms))
-        show_command('adjust-r', '%+dms' % ms)
+        show_command('adjustR', '%+dms' % ms)
 
     def offset(t, os):
         return min(max(t + os, 0), len(audio))
