@@ -27,16 +27,16 @@ class TimeSlider(urwid.ProgressBar):
 
 @click.command()
 @click.option('--anki-media', envvar='ANKI_MEDIA')
-@click.argument('filepath')
-def main(anki_media, filepath):
+@click.argument('srcpath', type=click.Path(exists=True))
+def main(anki_media, srcpath):
     instance = vlc.Instance()
-    main_player = instance.media_player_new(filepath)
+    main_player = instance.media_player_new(srcpath)
     chop_player = instance.media_player_new()
 
-    audio = AudioSegment.from_file(filepath)
+    audio = AudioSegment.from_file(srcpath)
     marks = [0, 0]
 
-    main_display = urwid.Text(filepath)
+    main_display = urwid.Text(srcpath)
     divider1 = urwid.Divider()
     time_slider = TimeSlider('normal', 'complete', current=0, done=len(audio))
     divider2 = urwid.Divider()
@@ -61,6 +61,7 @@ def main(anki_media, filepath):
         'chop_player': chop_player,
 
         'anki_media': anki_media,
+        'srcpath': srcpath,
         'audio':audio,
         'marks': marks,
 
@@ -107,6 +108,7 @@ def input_handler(ctx):
     chop_player = ctx['chop_player']
 
     anki_media = ctx['anki_media']
+    srcpath = ctx['srcpath']
 
     audio = ctx['audio']
     marks = ctx['marks']
@@ -116,11 +118,23 @@ def input_handler(ctx):
 
     def toggle():
         if main_player.is_playing():
-            pause(main_player)
+            pause()
         else:
             if chop_player.is_playing():
                 chop_player.stop()
-            play(main_player)
+            play()
+
+    def play():
+        r = main_player.play()
+
+    def replay():
+        t = main_player.get_time()
+        main_player.set_mrl(srcpath)
+        main_player.play()
+        main_player.set_time(t)
+
+    def pause():
+        main_player.set_pause(1)
 
     def seek(s):
         t = offset(main_player.get_time(), (s * 1000))
@@ -139,7 +153,7 @@ def input_handler(ctx):
         l, r = marks
         if l >= r:
             return
-        pause(main_player)
+        pause()
         audio_slice = audio[l:r]
         now = datetime.now().strftime('%Y%m%d-%H%M%S')
         filename = now + '.mp3'
@@ -157,7 +171,7 @@ def input_handler(ctx):
         chop_player.set_mrl(last_chop)
         chop_player.play()
 
-    def dump():
+    def dump(do_transcript):
         loop = ctx['loop']
         last_chop = ctx['last_chop']
 
@@ -167,13 +181,16 @@ def input_handler(ctx):
         filename = os.path.relpath(last_chop, anki_media)
         sound_str = '[sound:%s]' % filename
 
-        chop_display.set_text(sound_str)
-        loop.draw_screen()
-
-        transcript = recognize(last_chop)
-        text = '%s\n%s' % (sound_str, transcript)
-        pyperclip.copy(text)
-        chop_display.set_text(text)
+        if do_transcript:
+            chop_display.set_text('%s (recognizing)' % sound_str)
+            loop.draw_screen()
+            transcript = recognize(last_chop)
+            text = '%s\n%s' % (sound_str, transcript)
+            pyperclip.copy(text)
+            chop_display.set_text(text)
+        else:
+            pyperclip.copy(sound_str)
+            chop_display.set_text(sound_str)
 
     def handle(key):
         if key in ('q', 'Q'):
@@ -209,8 +226,12 @@ def input_handler(ctx):
             chop()
         if key is 'r':
             replay_chop()
+        if key is 'R':
+            replay()
         if key is 'd':
-            dump()
+            dump(do_transcript=False)
+        if key is 'D':
+            dump(do_transcript=True)
 
     return handle
 
@@ -234,13 +255,6 @@ def format_dt(ms1):
     h, m = divmod(m1, 60)
     return '%d:%02d:%02d.%d' % (h, m, s, ms // 100)
 
-
-def play(player):
-    player.set_pause(0)
-
-
-def pause(player):
-    player.set_pause(1)
 
 
 if __name__ == "__main__":
