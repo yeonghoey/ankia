@@ -214,12 +214,23 @@ def input_handler(ctx):
             pyperclip.copy(sound_str)
             show_command('dump', sound_str)
 
+    def yank_title():
+        pyperclip.copy(srcpath)
+        show_command('clip', srcpath)
+
+    def yank_position():
+        pos = format_dt(main_player.get_time())
+        # Remove ms part
+        pos, _ = pos.split('.')
+        pyperclip.copy(pos)
+        show_command('clip', pos)
+
     def show_command(cmd, msg=''):
         name_text.set_text(cmd)
         detail_text.set_text(msg)
 
     def handle(key):
-        if key in ('q', 'Q'):
+        if key is 'q':
             raise urwid.ExitMainLoop()
         if key is ' ':
             toggle()
@@ -254,6 +265,10 @@ def input_handler(ctx):
             dump(do_transcript=False)
         if key is 'D':
             dump(do_transcript=True)
+        if key is 'y':
+            yank_position()
+        if key is 'Y':
+            yank_title()
 
     return handle
 
