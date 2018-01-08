@@ -183,6 +183,8 @@ def input_handler(ctx):
         show_command('chop', filename)
         chop_player.set_mrl(filepath)
         chop_player.play()
+        # Seek to the end of the chop
+        main_player.set_time(r)
 
     def replay_chop():
         last_chop = ctx['last_chop']
