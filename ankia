@@ -284,8 +284,8 @@ def recognize(filepath):
         audio = r.record(source)
         try:
             return r.recognize_google_cloud(audio)
-        except (sr.RequestError, sr.UnknownValueError):
-            return ''
+        except (sr.RequestError, sr.UnknownValueError) as exc:
+            return str(exc)
 
 
 def format_dt(ms1):
