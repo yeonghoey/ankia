@@ -8,6 +8,7 @@ import tempfile
 import click
 from pydub import AudioSegment
 import pyperclip
+import pysrt
 import speech_recognition as sr
 import urwid
 import vlc
@@ -27,8 +28,16 @@ class TimeSlider(urwid.ProgressBar):
 
 @click.command()
 @click.option('--anki-media', envvar='ANKI_MEDIA')
+@click.option('--srt', is_flag=True)
+@click.option('--srtpath', type=click.Path(exists=True))
 @click.argument('srcpath', type=click.Path(exists=True))
-def main(anki_media, srcpath):
+def main(anki_media, srt, srtpath, srcpath):
+
+    if srtpath is None:
+        srtpath = os.path.splitext(srcpath)[0] + '.srt'
+
+    subs = init_subs(srt, srtpath)
+
     # Disable subtitles because they slow down the player for unknown reason
     instance = vlc.Instance('--no-sub-autodetect-file')
     main_player = instance.media_player_new(srcpath)
@@ -66,6 +75,7 @@ def main(anki_media, srcpath):
         'anki_media': anki_media,
         'srcpath': srcpath,
         'audio':audio,
+        'subs': subs,
         'marks': marks,
 
         'main_display': main_display,
@@ -77,6 +87,7 @@ def main(anki_media, srcpath):
         # can be set after input_handler
         'loop': None,
         'last_chop': '',
+        'last_lr': '',
     }
 
     handler = input_handler(ctx)
@@ -87,6 +98,16 @@ def main(anki_media, srcpath):
     main_player.get_instance().log_unset()
     loop.set_alarm_in(0.5, tick, ctx)
     loop.run()
+
+
+def init_subs(srt, srtpath):
+    if not srt:
+        return None
+
+    if not os.path.exists(srtpath):
+        sys.exit("'%s' does not exist" % srtpath)
+
+    return pysrt.open(srtpath)
 
 
 def tick(loop, ctx):
@@ -115,6 +136,7 @@ def input_handler(ctx):
     srcpath = ctx['srcpath']
 
     audio = ctx['audio']
+    subs = ctx['subs']
     marks = ctx['marks']
 
     time_slider = ctx['time_slider']
@@ -181,6 +203,7 @@ def input_handler(ctx):
         filepath = os.path.join(anki_media, filename)
         audio_slice.export(filepath, format='mp3')
         ctx['last_chop'] = filepath
+        ctx['last_lr'] = (l, r)
         show_command('chop', filename)
         chop_player.set_mrl(filepath)
         chop_player.play()
@@ -197,11 +220,12 @@ def input_handler(ctx):
         show_command('replay', os.path.relpath(last_chop, anki_media))
 
     def dump(do_transcript):
+        if not ctx['last_chop']:
+            return
+
         loop = ctx['loop']
         last_chop = ctx['last_chop']
-
-        if not last_chop:
-            return
+        last_l, last_r = ctx['last_lr']
 
         filename = os.path.relpath(last_chop, anki_media)
         sound_str = '[sound:%s]' % filename
@@ -209,7 +233,8 @@ def input_handler(ctx):
         if do_transcript:
             show_command('dump', '%s (recognizing)' % sound_str)
             loop.draw_screen()
-            transcript = recognize(last_chop)
+            transcript = (slice_subs(subs, last_l, last_r) if subs else
+                          recognize(last_chop)).strip()
             text = '%s\n%s' % (sound_str, transcript)
             pyperclip.copy(text)
             show_command('dump', text)
@@ -274,6 +299,11 @@ def input_handler(ctx):
             yank_title()
 
     return handle
+
+
+def slice_subs(subs, l, r, padding=1000):
+    ss = subs.slice(starts_after=l-padding, ends_before=r+padding)
+    return ' '.join(s.text for s in ss)
 
 
 def recognize(filepath):
