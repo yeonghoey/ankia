@@ -29,7 +29,8 @@ class TimeSlider(urwid.ProgressBar):
 @click.option('--anki-media', envvar='ANKI_MEDIA')
 @click.argument('srcpath', type=click.Path(exists=True))
 def main(anki_media, srcpath):
-    instance = vlc.Instance()
+    # Disable subtitles because they slow down the player for unknown reason
+    instance = vlc.Instance('--no-sub-autodetect-file')
     main_player = instance.media_player_new(srcpath)
     chop_player = instance.media_player_new()
 
