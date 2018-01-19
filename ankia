@@ -301,7 +301,7 @@ def input_handler(ctx):
     return handle
 
 
-def slice_subs(subs, l, r, padding=1000):
+def slice_subs(subs, l, r, padding=1500):
     ss = subs.slice(starts_after=l-padding, ends_before=r+padding)
     return ' '.join(s.text for s in ss)
 
