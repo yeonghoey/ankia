@@ -1,6 +1,6 @@
 Click==6.7
 google-api-python-client==1.6.4
-pydub==0.20.0
+moviepy==0.2.3.2
 pyperclip==1.6.0
 pysrt==1.1.1
 python-vlc==3.0.101

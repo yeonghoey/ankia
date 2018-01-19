@@ -6,9 +6,9 @@ import sys
 import tempfile
 
 import click
-from pydub import AudioSegment
 import pyperclip
 import pysrt
+from moviepy.editor import AudioFileClip
 import speech_recognition as sr
 import urwid
 import vlc
@@ -43,12 +43,12 @@ def main(anki_media, srt, srtpath, srcpath):
     main_player = instance.media_player_new(srcpath)
     chop_player = instance.media_player_new()
 
-    audio = AudioSegment.from_file(srcpath)
+    audio = AudioFileClip(srcpath)
     marks = [0, 0]
 
     main_display = urwid.Text(srcpath)
     divider1 = urwid.Divider()
-    time_slider = TimeSlider('normal', 'complete', current=0, done=len(audio))
+    time_slider = TimeSlider('normal', 'complete', current=0, done=audio.duration*1000)
     divider2 = urwid.Divider()
     mark_text = urwid.Text('')
     divider3 = urwid.Divider()
@@ -190,18 +190,18 @@ def input_handler(ctx):
         show_command('adjustR', '%+dms' % ms)
 
     def offset(t, os):
-        return min(max(t + os, 0), len(audio))
+        return min(max(t + os, 0), audio.duration*1000)
 
     def chop():
         l, r = marks
         if l >= r:
             return
         pause()
-        audio_slice = audio[l:r]
+        audio_slice = audio.subclip(l/1000., r/1000.)
         now = datetime.now().strftime('%Y%m%d-%H%M%S')
         filename = now + '.mp3'
         filepath = os.path.join(anki_media, filename)
-        audio_slice.export(filepath, format='mp3')
+        audio_slice.write_audiofile(filepath, verbose=False, progress_bar=False)
         ctx['last_chop'] = filepath
         ctx['last_lr'] = (l, r)
         show_command('chop', filename)
@@ -307,9 +307,9 @@ def slice_subs(subs, l, r, padding=1500):
 
 
 def recognize(filepath):
-    mp3 = AudioSegment.from_mp3(filepath)
-    _, wav_filepath = tempfile.mkstemp()
-    mp3.export(wav_filepath, format='wav')
+    mp3 = AudioFileClip(filepath)
+    _, wav_filepath = tempfile.mkstemp('.wav')
+    mp3.write_audiofile(wav_filepath, verbose=False, progress_bar=False)
     r = sr.Recognizer()
     with sr.AudioFile(wav_filepath) as source:
         audio = r.record(source)
